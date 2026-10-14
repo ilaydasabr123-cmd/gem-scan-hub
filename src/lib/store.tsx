@@ -1,3 +1,4 @@
+import type React from "react";
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { loadAll, saveKey } from "./db";
 import type { AppData } from "./types";
@@ -11,7 +12,9 @@ interface Ctx {
   replaceAll: (d: AppData) => Promise<void>;
 }
 
-const DataCtx = createContext<Ctx | null>(null);
+// Keep one context instance across hot reloads so provider and consumers always match.
+const g = globalThis as unknown as { __perlenDataCtx?: React.Context<Ctx | null> };
+const DataCtx = (g.__perlenDataCtx ??= createContext<Ctx | null>(null));
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(empty);
