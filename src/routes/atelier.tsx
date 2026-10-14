@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BookOpen, Plus, Save, Trash2, Undo2, X } from "lucide-react";
+import { BookOpen, Play, Plus, Save, Trash2, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import { Btn, Card, Field, Input, PageHeader, Select, Swatch } from "@/components/kit";
+import { CraftMode } from "@/components/CraftMode";
+import type { CraftProject } from "@/lib/crafting";
 import { moduleBeads, moduleLengthMm, planBracelet } from "@/lib/bracelet";
 import { meta } from "@/lib/meta";
 import { cloneTemplate, TEMPLATES } from "@/lib/templates";
@@ -20,18 +22,20 @@ const defaultBowls = (): Bowl[] => [
 
 function Atelier() {
   const [tab, setTab] = useState<"matte" | "armband">("matte");
+  const [craft, setCraft] = useState<CraftProject | null>(null);
   return (
     <div>
       <PageHeader title="Perlenatelier" subtitle="Dein digitaler Basteltisch.">
         <Btn variant={tab === "matte" ? "primary" : "soft"} onClick={() => setTab("matte")}>Perlenmatte</Btn>
         <Btn variant={tab === "armband" ? "primary" : "soft"} onClick={() => setTab("armband")}>Armband-Baukasten</Btn>
       </PageHeader>
-      {tab === "matte" ? <Matte /> : <Armband />}
+      {tab === "matte" ? <Matte onCraft={setCraft} /> : <Armband onCraft={setCraft} />}
+      {craft && <CraftMode project={craft} onClose={() => setCraft(null)} />}
     </div>
   );
 }
 
-function Matte() {
+function Matte({ onCraft }: { onCraft: (project: CraftProject) => void }) {
   const { data, update } = useData();
   const [bowls, setBowls] = useState<Bowl[]>(defaultBowls);
   const [steps, setSteps] = useState<Step[]>([]);
@@ -99,6 +103,7 @@ function Matte() {
             <Field label="Baustein-Name" className="min-w-0 flex-1"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
             <Btn onClick={save} disabled={!beads.length}><Save size={18} /> {editId ? "Aktualisieren" : "Als Baustein speichern"}</Btn>
             <Btn variant="soft" onClick={reset}>Neu</Btn>
+            <Btn variant="soft" disabled={!steps.length} onClick={() => onCraft({ title: name, modules: [mod], repeats: 1 })}><Play size={18} /> Bastelmodus</Btn>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">{beads.length} Perlen · {steps.filter((s) => s.kind === "pass").length} Durchgänge · {moduleLengthMm(mod).toFixed(1)} mm</p>
         </Card>
@@ -114,9 +119,10 @@ function Matte() {
               <div className="my-1 flex gap-0.5">{moduleBeads(t).slice(0, 14).map((b, i) => <Swatch key={i} hex={b.hex} size={10} />)}</div>
               <p className="text-xs text-muted-foreground">{t.description}</p>
               <p className="mt-1 text-xs text-muted-foreground">Schälchen: {t.bowls.map((b) => b.label).join(", ")}</p>
-              <div className="mt-2 flex gap-2">
+              <div className="mt-2 flex flex-wrap gap-2">
                 <Btn size="sm" variant="soft" onClick={() => openTpl(t)}>Öffnen & anpassen</Btn>
                 <Btn size="sm" onClick={() => saveTpl(t)}>Als Baustein</Btn>
+                <Btn size="sm" variant="soft" onClick={() => onCraft({ title: t.name, modules: [t], repeats: 1 })}><Play size={14} /> Basteln</Btn>
               </div>
             </div>
           ))}
@@ -132,6 +138,7 @@ function Matte() {
                 <div className="truncate font-medium">{m.name}</div>
                 <div className="flex gap-0.5">{moduleBeads(m).slice(0, 14).map((b, i) => <Swatch key={i} hex={b.hex} size={10} />)}</div>
               </button>
+              <Btn size="sm" variant="ghost" aria-label={`${m.name} basteln`} title="Bastelmodus" onClick={() => onCraft({ title: m.name, modules: [m], repeats: 1 })}><Play size={16} /></Btn>
               <Btn size="sm" variant="ghost" aria-label="Löschen" onClick={() => update("modules", (p) => p.filter((x) => x.id !== m.id))}><Trash2 size={14} /></Btn>
             </div>
           ))}
@@ -190,7 +197,7 @@ function Thread({ mod, onBeadTap }: { mod: PatternModule; onBeadTap?: (i: number
   );
 }
 
-function Armband() {
+function Armband({ onCraft }: { onCraft: (project: CraftProject) => void }) {
   const { data, update } = useData();
   const [seq, setSeq] = useState<string[]>([]);
   const [len, setLen] = useState(17);
@@ -232,6 +239,7 @@ function Armband() {
             <Field label="Name"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
           </div>
           <Btn className="mt-3" disabled={!mods.length} onClick={() => update("bracelets", (p) => [...p, { id: uid(), name, moduleIds: seq, lengthCm: len }])}><Save size={18} /> Armband speichern</Btn>
+          <Btn className="mt-3 sm:ml-2" variant="soft" disabled={!mods.some((m) => m.steps.length) || !Number.isFinite(plan.repeats) || plan.repeats < 1} onClick={() => onCraft({ title: name, modules: mods, repeats: plan.repeats })}><Play size={18} /> Armband basteln</Btn>
         </Card>
         {data.bracelets.length > 0 && (
           <Card>
@@ -239,6 +247,10 @@ function Armband() {
             {data.bracelets.map((b) => (
               <div key={b.id} className="flex items-center gap-2 py-1">
                 <button className="min-w-0 flex-1 truncate text-left" onClick={() => { setSeq(b.moduleIds); setLen(b.lengthCm); setName(b.name); }}>{b.name} · {b.lengthCm} cm</button>
+                <Btn size="sm" variant="ghost" aria-label={`${b.name} basteln`} title="Bastelmodus" disabled={!b.moduleIds.length || b.moduleIds.some((id) => !all.some((m) => m.id === id))} onClick={() => {
+                  const savedMods = b.moduleIds.flatMap((id) => { const m = all.find((m) => m.id === id); return m ? [m] : []; });
+                  onCraft({ title: b.name, modules: savedMods, repeats: planBracelet(savedMods, b.lengthCm).repeats });
+                }}><Play size={16} /></Btn>
                 <Btn size="sm" variant="ghost" onClick={() => update("bracelets", (p) => p.filter((x) => x.id !== b.id))}><Trash2 size={14} /></Btn>
               </div>
             ))}
