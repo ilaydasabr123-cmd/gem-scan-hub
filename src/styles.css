@@ -117,3 +117,11 @@
 }
 
 @media print { .no-print { display: none !important; } }
+
+.craft-mode { padding-top: env(safe-area-inset-top); }
+.craft-footer { padding-bottom: max(0.75rem, env(safe-area-inset-bottom)); }
+.craft-progress { appearance: none; background: var(--border); color: var(--primary); }
+.craft-progress::-webkit-progress-bar { background: var(--border); border-radius: 999px; }
+.craft-progress::-webkit-progress-value { background: var(--primary); border-radius: 999px; }
+.craft-progress::-moz-progress-bar { background: var(--primary); border-radius: 999px; }
+.craft-mode button:focus-visible { outline: 2px solid var(--ring); outline-offset: 3px; }

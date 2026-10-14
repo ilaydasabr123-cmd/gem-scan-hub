@@ -13,3 +13,4 @@
 - All app data persists locally in IndexedDB via `src/lib/db.ts` + `DataProvider` (`src/lib/store.tsx`); no backend — the app must work offline and cost-free.
 - Colour science (126 reference tones, Lab, CIEDE2000) lives in `src/lib/colors.ts`; scan sampling/homography in `src/lib/scan.ts`; covered by `src/test/rules.test.ts`.
 - Reference tone codes must stay stable — saved beads and backups reference them.
+- Crafting sessions use the pure step resolver in `src/lib/crafting.ts` and a full-screen, focus-trapped `CraftMode` dialog; module-local bead targets and bracelet repetitions resolve without mutating stored patterns or expanding all repetitions in memory.
