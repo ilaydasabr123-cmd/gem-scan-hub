@@ -25,3 +25,19 @@ describe("Armband", () => {
     expect(p.totalBeads).toBe(50);
   });
 });
+
+import { TEMPLATES, cloneTemplate } from "@/lib/templates";
+describe("Vorlagen", () => {
+  it("enthält die 5 gewünschten Muster mit gültigen Schritten", () => {
+    expect(TEMPLATES).toHaveLength(5);
+    for (const t of TEMPLATES) {
+      let n = 0;
+      for (const s of t.steps) {
+        if (s.kind === "bead") { expect(t.bowls.some((b) => b.id === s.bowlId)).toBe(true); n++; }
+        else expect(s.target).toBeLessThan(n);
+      }
+      const c = cloneTemplate(t);
+      expect(c.steps.filter((s) => s.kind === "bead").every((s) => s.kind === "bead" && c.bowls.some((b) => b.id === s.bowlId))).toBe(true);
+    }
+  });
+});

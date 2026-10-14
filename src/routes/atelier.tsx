@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Plus, Save, Trash2, Undo2, X } from "lucide-react";
+import { BookOpen, Plus, Save, Trash2, Undo2, X } from "lucide-react";
 import { useState } from "react";
 import { Btn, Card, Field, Input, PageHeader, Select, Swatch } from "@/components/kit";
 import { moduleBeads, moduleLengthMm, planBracelet } from "@/lib/bracelet";
 import { meta } from "@/lib/meta";
+import { cloneTemplate, TEMPLATES } from "@/lib/templates";
 import { useData } from "@/lib/store";
 import { SHAPES, uid, type Bowl, type PatternModule, type Step } from "@/lib/types";
 
@@ -13,8 +14,8 @@ export const Route = createFileRoute("/atelier")({
 });
 
 const defaultBowls = (): Bowl[] => [
-  { id: uid(), label: "A", hex: "#E8B4B8", sizeMm: 2, shape: "Rocaille" },
-  { id: uid(), label: "B", hex: "#C9A27E", sizeMm: 4, shape: "Bicone" },
+  { id: uid(), label: "Schälchen A", hex: "#E8B4B8", sizeMm: 2, shape: "Rocaille" },
+  { id: uid(), label: "Schälchen B", hex: "#C9A27E", sizeMm: 4, shape: "Bicone" },
 ];
 
 function Atelier() {
@@ -49,15 +50,17 @@ function Matte() {
     setEditId(m.id);
   };
   const loadMod = (m: PatternModule) => { setBowls(m.bowls); setSteps(m.steps); setName(m.name); setEditId(m.id); };
+  const openTpl = (t: PatternModule) => { const c = cloneTemplate(t); setBowls(c.bowls); setSteps(c.steps); setName(t.name); setEditId(null); };
+  const saveTpl = (t: PatternModule) => update("modules", (p) => [...p, cloneTemplate(t)]);
   const reset = () => { setSteps([]); setEditId(null); setName("Neues Muster"); };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]">
+    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
       <div className="min-w-0 space-y-4">
         <Card>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="font-display text-xl font-semibold">Perlen-Schälchen</h2>
-            <Btn size="sm" variant="soft" onClick={() => setBowls((b) => [...b, { id: uid(), label: String.fromCharCode(65 + b.length), hex: "#B8C4D6", sizeMm: 3, shape: "Rund" }])}><Plus size={16} /> Schälchen</Btn>
+            <Btn size="sm" variant="soft" onClick={() => setBowls((b) => [...b, { id: uid(), label: `Schälchen ${String.fromCharCode(65 + b.length)}`, hex: "#B8C4D6", sizeMm: 3, shape: "Rund" }])}><Plus size={16} /> Schälchen</Btn>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
             {bowls.map((b) => (
@@ -65,13 +68,13 @@ function Matte() {
                 <button
                   onClick={() => setSteps((s) => [...s, { kind: "bead", bowlId: b.id, needle }])}
                   className="mx-auto flex h-24 w-24 touch-manipulation flex-wrap content-center items-center justify-center gap-1 rounded-full border-4 border-card bg-secondary shadow-inner active:scale-95"
-                  aria-label={`Perle aus Schälchen ${b.label} auffädeln`}
+                  aria-label={`Perle aus ${b.label} auffädeln`}
                 >
                   {Array.from({ length: 7 }, (_, i) => <Swatch key={i} hex={b.hex} size={Math.min(18, 6 + b.sizeMm * 2.5)} />)}
                 </button>
                 <div className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] items-center gap-1.5 text-xs">
                   <input type="color" value={b.hex} onChange={(e) => setBowl(b.id, { hex: e.target.value })} className="h-8 w-8 rounded" aria-label="Farbe" />
-                  <span className="truncate font-semibold">Schälchen {b.label}</span>
+                  <input value={b.label} onChange={(e) => setBowl(b.id, { label: e.target.value })} className="min-w-0 truncate rounded bg-transparent font-semibold" aria-label="Rolle" />
                   <Input type="number" step="0.5" min="1" value={b.sizeMm} onChange={(e) => setBowl(b.id, { sizeMm: Number(e.target.value) })} className="col-span-2 min-h-9 text-xs" aria-label="mm" />
                   <Select value={b.shape} onChange={(e) => setBowl(b.id, { shape: e.target.value })} className="col-span-2 min-h-9 text-xs">{SHAPES.map((s) => <option key={s}>{s}</option>)}</Select>
                   <span className="col-span-2 text-muted-foreground">{b.sizeMm} mm {b.shape}</span>
@@ -84,14 +87,14 @@ function Matte() {
         <Card>
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <h2 className="mr-auto font-display text-xl font-semibold">Faden</h2>
-            <span className="text-sm text-muted-foreground">Aktive Nadel:</span>
-            <button onClick={() => setNeedle("A")} className={`min-h-10 rounded-lg px-3 text-sm font-semibold ${needle === "A" ? "bg-needle-a text-primary-foreground" : "bg-secondary"}`}>Nadel A</button>
-            <button onClick={() => setNeedle("B")} className={`min-h-10 rounded-lg px-3 text-sm font-semibold ${needle === "B" ? "bg-needle-b text-primary-foreground" : "bg-secondary"}`}>Nadel B</button>
+            <span className="text-sm text-muted-foreground">Aktiver Faden:</span>
+            <button onClick={() => setNeedle("A")} className={`min-h-10 rounded-lg px-3 text-sm font-semibold ${needle === "A" ? "bg-needle-a text-primary-foreground" : "bg-secondary"}`}>Faden 1 (links)</button>
+            <button onClick={() => setNeedle("B")} className={`min-h-10 rounded-lg px-3 text-sm font-semibold ${needle === "B" ? "bg-needle-b text-primary-foreground" : "bg-secondary"}`}>Faden 2 (rechts) / Nadel B</button>
             <Btn size="sm" variant="ghost" onClick={() => setSteps((s) => s.slice(0, -1))} disabled={!steps.length}><Undo2 size={16} /></Btn>
             <Btn size="sm" variant="ghost" onClick={() => setSteps([])} disabled={!steps.length}><X size={16} /></Btn>
           </div>
           <Thread mod={mod} onBeadTap={(i) => setSteps((s) => [...s, { kind: "pass", target: i, needle }])} />
-          <p className="mt-2 text-xs text-muted-foreground">Schälchen antippen = Perle auffädeln · aufgefädelte Perle antippen = Faden erneut hindurchführen / kreuzen.</p>
+          <p className="mt-2 text-xs text-muted-foreground">Schälchen antippen = Perle auffädeln · aufgefädelte Perle antippen = Faden erneut hindurchführen / kreuzen. Faden 1 = durchgezogene Linie, Faden 2 = gestrichelt. Gilt genauso fürs reine Handfädeln ohne Nadel – dann ist einfach das linke bzw. rechte Fadenende gemeint.</p>
           <div className="mt-4 flex flex-wrap items-end gap-2">
             <Field label="Baustein-Name" className="min-w-0 flex-1"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
             <Btn onClick={save} disabled={!beads.length}><Save size={18} /> {editId ? "Aktualisieren" : "Als Baustein speichern"}</Btn>
@@ -101,6 +104,24 @@ function Matte() {
         </Card>
       </div>
 
+      <div className="space-y-4">
+      <Card className="h-fit">
+        <h2 className="mb-3 flex items-center gap-2 font-display text-xl font-semibold"><BookOpen size={18} /> Vorlagen-Bibliothek</h2>
+        <div className="space-y-2">
+          {TEMPLATES.map((t) => (
+            <div key={t.id} className="rounded-xl bg-muted p-2">
+              <div className="font-medium">{t.name}</div>
+              <div className="my-1 flex gap-0.5">{moduleBeads(t).slice(0, 14).map((b, i) => <Swatch key={i} hex={b.hex} size={10} />)}</div>
+              <p className="text-xs text-muted-foreground">{t.description}</p>
+              <p className="mt-1 text-xs text-muted-foreground">Schälchen: {t.bowls.map((b) => b.label).join(", ")}</p>
+              <div className="mt-2 flex gap-2">
+                <Btn size="sm" variant="soft" onClick={() => openTpl(t)}>Öffnen & anpassen</Btn>
+                <Btn size="sm" onClick={() => saveTpl(t)}>Als Baustein</Btn>
+              </div>
+            </div>
+          ))}
+        </div>
+      </Card>
       <Card className="h-fit">
         <h2 className="mb-3 font-display text-xl font-semibold">Bausteine</h2>
         {data.modules.length === 0 && <p className="text-sm text-muted-foreground">Noch keine gespeicherten Muster.</p>}
@@ -116,6 +137,7 @@ function Matte() {
           ))}
         </div>
       </Card>
+      </div>
     </div>
   );
 }
@@ -173,7 +195,8 @@ function Armband() {
   const [seq, setSeq] = useState<string[]>([]);
   const [len, setLen] = useState(17);
   const [name, setName] = useState("Mein Armband");
-  const mods = seq.map((id) => data.modules.find((m) => m.id === id)).filter((m): m is PatternModule => !!m);
+  const all: PatternModule[] = [...data.modules, ...TEMPLATES];
+  const mods = seq.map((id) => all.find((m) => m.id === id)).filter((m): m is PatternModule => !!m);
   const plan = planBracelet(mods, len);
 
   const ring = Array.from({ length: plan.repeats }, () => mods.flatMap(moduleBeads)).flat();
@@ -184,9 +207,13 @@ function Armband() {
       <div className="space-y-4">
         <Card>
           <h2 className="mb-3 font-display text-xl font-semibold">Bausteine hinzufügen</h2>
-          {data.modules.length === 0 && <p className="text-sm text-muted-foreground">Speichere zuerst Muster auf der Perlenmatte.</p>}
-          <div className="flex flex-wrap gap-2">
+          {data.modules.length > 0 && <p className="mb-1 text-sm text-muted-foreground">Eigene Muster</p>}
+          <div className="mb-3 flex flex-wrap gap-2">
             {data.modules.map((m) => <Btn key={m.id} variant="soft" onClick={() => setSeq((s) => [...s, m.id])}><Plus size={16} /> {m.name}</Btn>)}
+          </div>
+          <p className="mb-1 text-sm text-muted-foreground">Vorlagen</p>
+          <div className="flex flex-wrap gap-2">
+            {TEMPLATES.map((m) => <Btn key={m.id} variant="soft" onClick={() => setSeq((s) => [...s, m.id])}><Plus size={16} /> {m.name}</Btn>)}
           </div>
         </Card>
         <Card>
