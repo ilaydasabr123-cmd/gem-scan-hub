@@ -10,33 +10,91 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AtelierRouteImport } from './routes/atelier'
+import { Route as BestandRouteImport } from './routes/bestand'
+import { Route as EinstellungenRouteImport } from './routes/einstellungen'
+import { Route as EtikettenRouteImport } from './routes/etiketten'
+import { Route as ScanRouteImport } from './routes/scan'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AtelierRoute = AtelierRouteImport.update({
+  id: '/atelier',
+  path: '/atelier',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BestandRoute = BestandRouteImport.update({
+  id: '/bestand',
+  path: '/bestand',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EinstellungenRoute = EinstellungenRouteImport.update({
+  id: '/einstellungen',
+  path: '/einstellungen',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EtikettenRoute = EtikettenRouteImport.update({
+  id: '/etiketten',
+  path: '/etiketten',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ScanRoute = ScanRouteImport.update({
+  id: '/scan',
+  path: '/scan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/atelier': typeof AtelierRoute
+  '/bestand': typeof BestandRoute
+  '/einstellungen': typeof EinstellungenRoute
+  '/etiketten': typeof EtikettenRoute
+  '/scan': typeof ScanRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/atelier': typeof AtelierRoute
+  '/bestand': typeof BestandRoute
+  '/einstellungen': typeof EinstellungenRoute
+  '/etiketten': typeof EtikettenRoute
+  '/scan': typeof ScanRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/atelier': typeof AtelierRoute
+  '/bestand': typeof BestandRoute
+  '/einstellungen': typeof EinstellungenRoute
+  '/etiketten': typeof EtikettenRoute
+  '/scan': typeof ScanRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    '/' | '/atelier' | '/bestand' | '/einstellungen' | '/etiketten' | '/scan'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/atelier' | '/bestand' | '/einstellungen' | '/etiketten' | '/scan'
+  id:
+    | '__root__'
+    | '/'
+    | '/atelier'
+    | '/bestand'
+    | '/einstellungen'
+    | '/etiketten'
+    | '/scan'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AtelierRoute: typeof AtelierRoute
+  BestandRoute: typeof BestandRoute
+  EinstellungenRoute: typeof EinstellungenRoute
+  EtikettenRoute: typeof EtikettenRoute
+  ScanRoute: typeof ScanRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +106,51 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/atelier': {
+      id: '/atelier'
+      path: '/atelier'
+      fullPath: '/atelier'
+      preLoaderRoute: typeof AtelierRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bestand': {
+      id: '/bestand'
+      path: '/bestand'
+      fullPath: '/bestand'
+      preLoaderRoute: typeof BestandRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/einstellungen': {
+      id: '/einstellungen'
+      path: '/einstellungen'
+      fullPath: '/einstellungen'
+      preLoaderRoute: typeof EinstellungenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/etiketten': {
+      id: '/etiketten'
+      path: '/etiketten'
+      fullPath: '/etiketten'
+      preLoaderRoute: typeof EtikettenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/scan': {
+      id: '/scan'
+      path: '/scan'
+      fullPath: '/scan'
+      preLoaderRoute: typeof ScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AtelierRoute: AtelierRoute,
+  BestandRoute: BestandRoute,
+  EinstellungenRoute: EinstellungenRoute,
+  EtikettenRoute: EtikettenRoute,
+  ScanRoute: ScanRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
