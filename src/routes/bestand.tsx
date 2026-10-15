@@ -2,17 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Box, LayoutGrid, Plus, Rows3, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { BeadForm } from "@/components/BeadForm";
+import { BulkEditForm } from "@/components/BulkEditForm";
+import { applyBulk } from "@/lib/bulk";
 import { Btn, Card, Field, Input, Modal, PageHeader, Select, Swatch } from "@/components/kit";
 import { meta } from "@/lib/meta";
 import { useData } from "@/lib/store";
-import { slotLabel, uid, type Bead, type Storage, type StorageType } from "@/lib/types";
+import { qtyLabel, slotLabel, uid, type Bead, type Storage, type StorageType } from "@/lib/types";
 
 export const Route = createFileRoute("/bestand")({
   head: () => meta("Bestand & Lager", "Alle Perlen mit Farbe, Größe, Form und Lagerort verwalten."),
   component: Bestand,
 });
 
-const newBead = (): Bead => ({ id: uid(), name: "Neue Perle", hex: "#E8B4B8", sizeMm: 2, shape: "Rocaille", material: "Glas" });
+const newBead = (): Bead => ({ id: uid(), name: "Neue Perle", hex: "#E8B4B8", unit: "stk" });
 const TYPE_LABEL: Record<StorageType, string> = { box: "Sortierbox", smallJar: "Kleine Dose", largeJar: "Große Dose" };
 
 function Bestand() {
@@ -21,8 +23,12 @@ function Bestand() {
   const [view, setView] = useState<"table" | "tiles">("table");
   const [edit, setEdit] = useState<Bead | null>(null);
   const [q, setQ] = useState("");
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulk, setBulk] = useState(false);
+  const [notice, setNotice] = useState("");
+  const toggle = (id: string) => setPicked((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const st = (id?: string) => data.storages.find((s) => s.id === id);
-  const beads = data.beads.filter((b) => (b.name + b.refCode + b.hex + b.shape).toLowerCase().includes(q.toLowerCase()));
+  const beads = data.beads.filter((b) => [b.name, b.refCode, b.hex, b.shape, b.material, b.surface, b.effect, b.transparency].join(" ").toLowerCase().includes(q.toLowerCase()));
 
   const save = (b: Bead) => {
     update("beads", (prev) => (prev.some((x) => x.id === b.id) ? prev.map((x) => (x.id === b.id ? b : x)) : [...prev, b]));
@@ -44,22 +50,39 @@ function Bestand() {
             <Btn variant="soft" onClick={() => setView("tiles")} aria-label="Kacheln"><LayoutGrid size={18} /></Btn>
             <Btn onClick={() => setEdit(newBead())}><Plus size={18} /> Perle anlegen</Btn>
           </div>
+          {beads.length > 0 && (
+            <div className="mb-3 flex flex-wrap items-center gap-3 rounded-2xl bg-secondary px-4 py-2 text-sm">
+              <label className="flex min-h-11 items-center gap-2">
+                <input type="checkbox" className="h-5 w-5 accent-primary" checked={beads.every((b) => picked.has(b.id))} onChange={(e) => setPicked(e.target.checked ? new Set([...picked, ...beads.map((b) => b.id)]) : new Set([...picked].filter((id) => !beads.some((b) => b.id === id))))} />
+                Alle auswählen
+              </label>
+              <span className="font-medium">{picked.size} Perlen ausgewählt</span>
+              {picked.size > 0 && <Btn size="sm" variant="ghost" onClick={() => setPicked(new Set())}>Auswahl aufheben</Btn>}
+              <Btn size="sm" className="ml-auto" disabled={!picked.size} onClick={() => setBulk(true)}>Ausgewählte Perlen bearbeiten</Btn>
+            </div>
+          )}
+          {notice && <p role="status" className="mb-3 rounded-xl bg-accent px-4 py-2 text-sm">{notice}</p>}
           {beads.length === 0 && <Card><p className="text-muted-foreground">Noch keine Perlen. Lege eine an oder übernimm sie aus dem Foto-Scan.</p></Card>}
           {view === "table" && beads.length > 0 && (
             <Card className="overflow-x-auto p-0">
               <table className="w-full text-sm">
                 <thead className="bg-muted text-left text-muted-foreground">
-                  <tr>{["Farbe", "Name", "Code", "Größe", "Form", "Material", "Lagerort"].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}</tr>
+                  <tr><th className="w-10 px-4 py-3"><span className="sr-only">Auswahl</span></th>{["Farbe", "Name", "Code", "Größe", "Form", "Material", "Oberfläche", "Effekt", "Transparenz", "Menge", "Lagerort"].map((h) => <th key={h} className="px-4 py-3 font-medium">{h}</th>)}</tr>
                 </thead>
                 <tbody>
                   {beads.map((b) => (
                     <tr key={b.id} className="cursor-pointer border-t border-border hover:bg-accent/50" onClick={() => setEdit(b)}>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}><input type="checkbox" aria-label={`${b.name} auswählen`} className="h-5 w-5 accent-primary" checked={picked.has(b.id)} onChange={() => toggle(b.id)} /></td>
                       <td className="px-4 py-3"><Swatch hex={b.hex} /></td>
                       <td className="px-4 py-3 font-medium">{b.name}</td>
                       <td className="px-4 py-3">{b.refCode ?? b.hex}</td>
-                      <td className="px-4 py-3">{b.sizeMm} mm</td>
-                      <td className="px-4 py-3">{b.shape}</td>
-                      <td className="px-4 py-3">{b.material}</td>
+                      <td className="px-4 py-3">{b.sizeMm != null ? `${b.sizeMm} mm` : "—"}</td>
+                      <td className="px-4 py-3">{b.shape ?? "—"}</td>
+                      <td className="px-4 py-3">{b.material ?? "—"}</td>
+                      <td className="px-4 py-3">{b.surface ?? "—"}</td>
+                      <td className="px-4 py-3">{b.effect ?? "—"}</td>
+                      <td className="px-4 py-3">{b.transparency ?? "—"}</td>
+                      <td className="px-4 py-3">{qtyLabel(b)}</td>
                       <td className="px-4 py-3">{slotLabel(st(b.storageId), b.slot)}</td>
                     </tr>
                   ))}
@@ -70,12 +93,16 @@ function Bestand() {
           {view === "tiles" && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {beads.map((b) => (
-                <button key={b.id} onClick={() => setEdit(b)} className="rounded-2xl border border-border bg-card p-4 text-left shadow-soft hover:bg-accent/40">
+                <div key={b.id} className={`relative rounded-2xl border bg-card shadow-soft ${picked.has(b.id) ? "border-primary" : "border-border"}`}>
+                <input type="checkbox" aria-label={`${b.name} auswählen`} className="absolute right-3 top-3 z-10 h-6 w-6 accent-primary" checked={picked.has(b.id)} onChange={() => toggle(b.id)} />
+                <button onClick={() => setEdit(b)} className="w-full rounded-2xl p-4 text-left hover:bg-accent/40">
                   {b.photo ? <img src={b.photo} alt="" className="mb-3 h-16 w-16 rounded-full object-cover" /> : <Swatch hex={b.hex} size={64} className="mb-3" />}
                   <div className="truncate font-medium">{b.name}</div>
-                  <div className="text-xs text-muted-foreground">{b.refCode ?? b.hex} · {b.sizeMm} mm {b.shape}</div>
+                  <div className="text-xs text-muted-foreground">{b.refCode ?? b.hex} · {[b.sizeMm != null ? `${b.sizeMm} mm` : null, b.shape].filter(Boolean).join(" ")}</div>
+                  <div className="truncate text-xs text-muted-foreground">{[b.surface, b.effect, b.transparency].filter(Boolean).join(" · ") || "\u00a0"} · {qtyLabel(b)}</div>
                   <div className="truncate text-xs text-muted-foreground">{slotLabel(st(b.storageId), b.slot)}</div>
                 </button>
+                </div>
               ))}
             </div>
           )}
@@ -84,6 +111,15 @@ function Bestand() {
         <Lager />
       )}
 
+      <Modal open={bulk} onClose={() => setBulk(false)} title={`${picked.size} Perlen bearbeiten`}>
+        {bulk && (
+          <BulkEditForm
+            count={picked.size}
+            onCancel={() => setBulk(false)}
+            onApply={(patch) => { update("beads", (p) => applyBulk(p, picked, patch)); setNotice(`${picked.size} Perlen wurden aktualisiert.`); setBulk(false); }}
+          />
+        )}
+      </Modal>
       <Modal open={!!edit} onClose={() => setEdit(null)} title="Perle bearbeiten">
         {edit && (
           <BeadForm
