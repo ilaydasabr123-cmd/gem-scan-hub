@@ -13,13 +13,28 @@ export interface Bead {
   name: string;
   hex: string;
   refCode?: string;
-  sizeMm: number;
-  shape: string;
-  material: string;
+  sizeMm?: number;
+  shape?: string;
+  material?: string;
+  surface?: string;
+  effect?: string;
+  transparency?: string;
+  quantity?: number;
+  unit?: "stk" | "g";
   storageId?: string;
   slot?: number;
   photo?: string;
 }
+
+export const BEAD_SURFACES = ["Glänzend", "Glatt", "Facettiert", "Matt", "Satin", "Perlmutt"];
+export const BEAD_EFFECTS = ["Crackle", "Opak", "Marmoriert", "Inneneinzug", "Silbereinzug", "Perlmutt", "Transparent", "Irisierend", "Metallic", "Lustre", "Glänzend"];
+export const BEAD_SHAPES = ["Rund", "Rocailles", "Bicone", "Rondell"];
+export const BEAD_MATERIALS = ["Plastik", "Glas", "Kristallglas"];
+export const BEAD_TRANSPARENCY = ["Transparent", "Opak", "Transluzent", "Kristallklar"];
+export const BEAD_SIZES = [2, 3, 4, 5, 6, 7, 8, 10];
+export const UNIT_LABEL = { stk: "Stk.", g: "g" } as const;
+
+export const qtyLabel = (b: Bead) => (b.quantity == null ? "—" : `${b.quantity} ${UNIT_LABEL[b.unit ?? "stk"]}`);
 
 export interface Bowl {
   id: string;

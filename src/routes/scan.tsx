@@ -160,7 +160,7 @@ function Scan() {
     }
     const bead: Bead = {
       id: uid(), name: best.color.name, hex: rgbToHex(r.rgb), refCode: best.color.code,
-      sizeMm: size, shape: "Rocaille", material: "Glas", storageId, slot, photo: r.thumb,
+      sizeMm: size, unit: "stk", storageId, slot, photo: r.thumb,
     };
     update("beads", (p) => [...p, bead]);
     setResults((rs) => rs.map((x) => (x === r ? { ...x, added: true } : x)));
